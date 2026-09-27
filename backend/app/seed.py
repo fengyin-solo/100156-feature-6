@@ -1,7 +1,49 @@
 """示例数据：每个模块给几条不同状态的记录，方便起服务后立刻看到内容。"""
 from __future__ import annotations
 
+from datetime import date, timedelta
 from typing import Any
+
+
+def _iso(offset_days: int) -> str:
+    """以今天为基准生成 YYYY-MM-DD，保证示例数据的到期分档在任何日期启动都成立。"""
+    return (date.today() + timedelta(days=offset_days)).isoformat()
+
+
+def _sensor_seed_rows() -> list[dict[str, Any]]:
+    """覆盖已过期、30天内到期、正常、日期缺失与已拆除（不参与到期统计）几类情形。"""
+    raw = [
+        # (传感器编号, 所属站点, 观测要素, 设备型号, 出厂序列号, 安装高度, 安装日期偏移, 检定有效期偏移, 状态, pending, abnormal)
+        ("SENS-0001", "滨江国家基本气象站", "气温", "PTB330", "SN-T-20210315", "1.5m", -820, -42, "正常采集", True, False),
+        ("SENS-0002", "滨江国家基本气象站", "降水量", "RG13H", "SN-R-20210620", "1.5m", -760, -8, "正常采集", True, True),
+        ("SENS-0003", "萧山区域自动站", "相对湿度", "HMP155", "SN-H-20220108", "2.0m", -600, 6, "正常采集", True, False),
+        ("SENS-0004", "余杭山地气候站", "风速", "010C-2D", "SN-W-20201125", "10.0m", -900, 18, "疑误待查", False, True),
+        ("SENS-0005", "钱塘江口潮位站", "风向", "020C-2D", "SN-D-20201126", "10.0m", -890, 28, "待检定", True, False),
+        ("SENS-0006", "临安大气本底站", "气压", "PTB330", "SN-P-20230411", "1.5m", -500, 95, "正常采集", True, False),
+        ("SENS-0007", "千岛湖生态站", "蒸发量", "L20-xy", "SN-E-20230802", "0.7m", -420, 210, "正常采集", True, False),
+        ("SENS-0008", "富阳区域自动站", "地温", "ST-101", "SN-G-20190518", "0.0m", -1100, -120, "正常采集", True, False),
+        ("SENS-0009", "建德高山站", "能见度", "PWD22", "SN-V-20181203", "2.5m", -1250, None, "已拆除", False, False),
+    ]
+    rows: list[dict[str, Any]] = []
+    for idx, item in enumerate(raw, start=1):
+        code, station, element, model, serial, height, install_offset, expiry_offset, status, pending, abnormal = item
+        row: dict[str, Any] = {
+            "id": idx,
+            "status": status,
+            "pending": pending,
+            "abnormal": abnormal,
+            "传感器编号": code,
+            "所属站点": station,
+            "观测要素": element,
+            "设备型号": model,
+            "出厂序列号": serial,
+            "安装高度": height,
+            "安装日期": _iso(install_offset),
+            "检定有效期": _iso(expiry_offset) if expiry_offset is not None else "",
+            "传感器状态": status,
+        }
+        rows.append(row)
+    return rows
 
 SEED_ROWS: dict[str, list[dict[str, Any]]] = {
     "station": [{'id': 1,
@@ -40,42 +82,7 @@ SEED_ROWS: dict[str, list[dict[str, Any]]] = {
   '建站年份': '观测站点样例3',
   '值守方式': '观测站点样例3',
   '站点状态': '观测站点样例3'}],
-    "sensor": [{'id': 1,
-  'status': '待检定',
-  'pending': True,
-  'abnormal': False,
-  '传感器编号': 'SENS-0001',
-  '所属站点': '观测传感器样例1',
-  '观测要素': '观测传感器样例1',
-  '设备型号': '观测传感器样例1',
-  '出厂序列号': '观测传感器样例1',
-  '安装高度': '观测传感器样例1',
-  '检定有效期': '观测传感器样例1',
-  '传感器状态': '观测传感器样例1'},
- {'id': 2,
-  'status': '正常采集',
-  'pending': True,
-  'abnormal': True,
-  '传感器编号': 'SENS-0002',
-  '所属站点': '观测传感器样例2',
-  '观测要素': '观测传感器样例2',
-  '设备型号': '观测传感器样例2',
-  '出厂序列号': '观测传感器样例2',
-  '安装高度': '观测传感器样例2',
-  '检定有效期': '观测传感器样例2',
-  '传感器状态': '观测传感器样例2'},
- {'id': 3,
-  'status': '疑误待查',
-  'pending': False,
-  'abnormal': False,
-  '传感器编号': 'SENS-0003',
-  '所属站点': '观测传感器样例3',
-  '观测要素': '观测传感器样例3',
-  '设备型号': '观测传感器样例3',
-  '出厂序列号': '观测传感器样例3',
-  '安装高度': '观测传感器样例3',
-  '检定有效期': '观测传感器样例3',
-  '传感器状态': '观测传感器样例3'}],
+    "sensor": _sensor_seed_rows(),
     "observation": [{'id': 1,
   'status': '待质控',
   'pending': True,
